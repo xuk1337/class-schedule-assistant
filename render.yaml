@@ -6,7 +6,8 @@ services:
     name: class-schedule-assistant
     runtime: python
     plan: free
-    rootDir: 班级课表助手_正式系统
+    # app 是指向「班级课表助手_正式系统」的符号链接（rootDir 仅允许 ASCII 字符）
+    rootDir: app
     buildCommand: pip install -r requirements.txt
     # 单 worker + 多线程：SQLite 写并发有限，免费档内存也有限
     startCommand: python scripts/init_deploy.py && gunicorn -w 1 --threads 4 -b 0.0.0.0:$PORT 'app:create_app()'
