@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>班级课表助手 · 架构图</title>
+  <link rel="icon" href="data:,">
+  <script src="https://unpkg.com/mermaid@10.9.1/dist/mermaid.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: #f5f7fa; color: #333; line-height: 1.6;
+    }
+    header {
+      background: linear-gradient(135deg, #4a90d9, #357abd);
+      color: #fff; padding: 20px 30px;
+    }
+    header h1 { font-size: 22px; }
+    header p { font-size: 13px; opacity: .85; margin-top: 4px; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 20px; }
+    .diagram-card {
+      background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.06);
+      margin-bottom: 24px; overflow: hidden;
+    }
+    .diagram-card h2 {
+      font-size: 16px; padding: 14px 20px;
+      background: #f0f6ff; color: #357abd; border-bottom: 1px solid #e8e8e8;
+    }
+    .diagram-card .desc {
+      font-size: 13px; color: #666; padding: 10px 20px; background: #fafbfc;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .diagram-card .mermaid {
+      padding: 20px; text-align: center; overflow-x: auto;
+    }
+    .mermaid svg { max-width: 100%; height: auto; }
+    .legend {
+      display: flex; gap: 20px; flex-wrap: wrap;
+      padding: 12px 20px; background: #fafbfc; font-size: 12px; color: #555;
+      border-top: 1px solid #f0f0f0;
+    }
+    .legend b { color: #333; }
+    .print-btn {
+      position: fixed; top: 20px; right: 20px; z-index: 999;
+      background: #4a90d9; color: #fff; border: none; border-radius: 6px;
+      padding: 8px 16px; cursor: pointer; font-size: 13px;
+      box-shadow: 0 2px 8px rgba(74,144,217,.3);
+    }
+    .print-btn:hover { background: #357abd; }
+    @media print {
+      .print-btn { display: none; }
+      .diagram-card { break-inside: avoid; page-break-inside: avoid; }
+      body { background: #fff; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>📐 班级课表助手 · 技术架构图</h1>
+  <p>v2.0 正式系统实际架构 | Flask + SQLite + 原生 HTML/CSS/JS · 已完成前后端联调与本地验收</p>
+</header>
+
+<button class="print-btn" onclick="window.print()">🖨️ 打印/保存PDF</button>
+
+<div class="container">
+
+  <!-- 图1：系统分层架构 -->
+  <div class="diagram-card">
+    <h2>图 1 · 系统分层架构</h2>
+    <div class="desc">浏览器只负责交互和展示，Flask 负责认证、授权与事务，SQLite 是唯一权威数据源</div>
+    <div class="mermaid">
+flowchart LR
+    subgraph Browser["浏览器（单页前端 static/index.html）"]
+        UI["渲染层<br/>周视图rowspan表格 / 日视图列表<br/>考试倒计时 / 作业提醒卡片"]
+        Logic["交互层<br/>周次与搜索过滤 / 状态反馈<br/>CSV选择与预览 / 浏览器PDF打印"]
+        Net["接口层<br/>fetch封装 / CSRF令牌<br/>Session登录态 / 统一错误处理"]
+    end
+
+    subgraph Flask["Flask 应用（app.py）"]
+        Page["页面路由<br/>GET / → index.html"]
+        API["REST API<br/>认证 / 系统管理 / 课表查询<br/>课程安排 / 作业 / 双CSV导入"]
+        Valid["服务层<br/>role/status/class_id/semester鉴权<br/>激活与邀请码 / 冲突检测<br/>批量导入与管理员交接事务"]
+        DBX["数据访问层<br/>参数化SQL / 短事务<br/>外键ON / 迁移与审计"]
+    end
+
+    subgraph SQLite["SQLite（instance/classschedule.db）"]
+        T["9张正式表<br/>semesters / classes / users<br/>teachers / time_slots / courses<br/>course_sessions / homework / audit_logs"]
+    end
+
+    UI --> Logic --> Net
+    Net -- "fetch JSON (REST)" --> API
+    Page --> UI
+    API --> Valid --> DBX
+    DBX -- "SQL（参数化）" --> T
+    </div>
+    <div class="legend">
+      <span><b>表现层</b>：页面渲染、交互、前端预校验</span>
+      <span><b>接口层</b>：REST 路由、JSON 序列化</span>
+      <span><b>业务层</b>：参数校验、冲突检测、事务</span>
+      <span><b>数据层</b>：SQLite 连接、外键级联</span>
+    </div>
+  </div>
+
+  <!-- 图2：目录结构 -->
+  <div class="diagram-card">
+    <h2>图 2 · 项目目录结构</h2>
+    <div class="desc">与当前正式系统源码一致：应用工厂、三组路由、数据库工具、静态前端、脚本和自动化测试集中管理</div>
+    <div class="mermaid">
+graph TD
+    ROOT["班级课表助手_正式系统/"]
+    ROOT --> APP["app.py<br/>create_app应用工厂"]
+    ROOT --> CFG["config.py + .env.example<br/>环境配置，不提交密钥"]
+    ROOT --> DBHELP["db.py + utils.py<br/>连接、响应、鉴权与审计"]
+    ROOT --> ROUTES["routes_auth.py<br/>routes_business.py<br/>routes_system.py"]
+    ROOT --> DB_DIR["database/"]
+    ROOT --> INSTANCE["instance/<br/>运行时数据库"]
+    ROOT --> STATIC["static/"]
+    ROOT --> SCRIPTS["scripts/<br/>创建系统管理员 / 开发种子"]
+    ROOT --> TESTS["tests/<br/>认证 / 业务 / 数据库 / 系统管理"]
+    ROOT --> REQ["requirements.txt + requirements-dev.txt<br/>运行与测试依赖"]
+
+    DB_DIR --> SCHEMA["schema.sql<br/>9张表、索引、外键"]
+    INSTANCE --> DB["classschedule.db<br/>运行时数据"]
+    STATIC --> INDEX["index.html + admin.html<br/>课表端与系统管理端"]
+    STATIC --> ASSETS["js/api.js + app.js + admin.js<br/>css/style.css + admin.css"]
+
+    APP --> ROUTES
+    ROUTES --> DBHELP --> DB
+    CFG --> APP
+    </div>
+  </div>
+
+  <!-- 图3：数据库 ER 图 -->
+  <div class="diagram-card">
+    <h2>图 3 · 正式数据库 ER 图（9 张表）</h2>
+    <div class="desc">课程与上课安排分表；学期、动态邀请码摘要、账号状态和审计日志均进入正式模型</div>
+    <div class="mermaid">
+erDiagram
+    semesters ||--o{ courses : "semester_id"
+    classes ||--o{ users : "class_id 绑定"
+    classes ||--o{ courses : "class_id 归属"
+    classes ||--o{ audit_logs : "class_id 可选"
+    teachers ||--o{ courses : "teacher_id"
+    courses ||--o{ course_sessions : "course_id 级联删除"
+    courses ||--o{ homework : "course_id 级联删除"
+    time_slots ||--o{ course_sessions : "起止节次"
+    users ||--o{ homework : "created_by/updated_by"
+    users ||--o{ audit_logs : "actor_user_id"
+
+    semesters {
+        INTEGER id PK
+        TEXT name UK
+        TEXT start_date "第一周周一"
+        INTEGER week_count "1至30"
+        TEXT status "active/inactive"
+    }
+
+    classes {
+        INTEGER id PK
+        TEXT class_code UK
+        TEXT class_name
+        TEXT invite_code_hash "仅保存摘要"
+        TEXT invite_code_updated_at
+        TEXT status "active/disabled"
+    }
+
+    users {
+        INTEGER id PK
+        TEXT login_id UK
+        TEXT student_no UK "学生必填"
+        TEXT name
+        TEXT password_hash "待激活时为空"
+        TEXT role "student/admin/system_admin"
+        TEXT status "pending/active/disabled"
+        INTEGER class_id FK "系统管理员为空"
+    }
+
+    teachers {
+        INTEGER id PK
+        TEXT name UK
+    }
+
+    time_slots {
+        INTEGER section_no PK "1至12"
+        TEXT start_time
+        TEXT end_time
+    }
+
+    courses {
+        INTEGER id PK
+        INTEGER class_id FK
+        INTEGER semester_id FK
+        TEXT course_code "班级+学期内唯一"
+        TEXT course_name
+        INTEGER teacher_id FK
+        TEXT exam_date
+        TEXT remark
+    }
+
+    course_sessions {
+        INTEGER id PK
+        INTEGER course_id FK
+        TEXT classroom
+        INTEGER day_of_week "1至7"
+        INTEGER start_section "1至12"
+        INTEGER end_section "1至12"
+        INTEGER week_start
+        INTEGER week_end
+    }
+
+    homework {
+        INTEGER id PK
+        INTEGER course_id FK
+        TEXT content
+        TEXT deadline
+        INTEGER created_by FK
+        INTEGER updated_by FK
+    }
+
+    audit_logs {
+        INTEGER id PK
+        INTEGER actor_user_id FK
+        TEXT action
+        TEXT target_type
+        INTEGER target_id
+        INTEGER class_id FK
+        TEXT result
+        TEXT detail_json
+        TEXT created_at
+    }
+    </div>
+  </div>
+
+  <!-- 图4：API 接口总览 -->
+  <div class="diagram-card">
+    <h2>图 4 · 正式 API 与权限边界</h2>
+    <div class="desc">三角色使用同一认证体系；服务端从 Session 推导角色、班级和当前学期，前端参数不能扩大权限</div>
+    <div class="mermaid">
+graph TB
+    subgraph 认证与会话
+        A1["POST /api/auth/student-activate<br/>匹配pending名单和邀请码摘要"]
+        A2["POST /api/auth/login<br/>建立Session"]
+        A3["GET /api/auth/me<br/>返回角色/状态/班级"]
+        A4["POST /api/auth/logout<br/>销毁会话"]
+        A5["POST /api/auth/change-password<br/>登录用户修改密码"]
+    end
+
+    subgraph 系统管理员
+        M1["POST /api/system/semesters<br/>POST /api/system/classes"]
+        M2["POST /api/system/classes/{id}/students/import<br/>导入pending学生"]
+        M3["PUT /api/system/classes/{id}/admin<br/>管理员任命/交接"]
+        M4["PATCH /api/system/users/{id}<br/>启停账号/学生转班"]
+        M4P["POST /api/system/users/{id}/reset-password<br/>一次性返回新密码"]
+        M5["GET /api/system/audit-logs<br/>审计分页查询"]
+    end
+
+    subgraph 学生与班级管理员
+        S1["GET /api/schedule?week=N<br/>读取本班当前学期"]
+        S2["GET /api/courses/{id}<br/>课程+全部安排+作业"]
+        I1["POST /api/classes/me/invite-code/regenerate<br/>仅本班有效管理员"]
+        B1["POST /api/import/course-homework<br/>multipart双CSV事务覆盖"]
+    end
+
+    subgraph 班级管理员写接口
+        C1["POST /api/courses<br/>PUT/DELETE /api/courses/{id}"]
+        C2["POST /api/courses/{id}/sessions<br/>PUT/DELETE /api/course-sessions/{id}"]
+        H1["POST /api/courses/{id}/homework<br/>PUT/DELETE /api/homework/{id}"]
+    end
+
+    A1 --> A2 --> A3
+    A3 --> A5
+    A3 -->|"system_admin"| M1
+    A3 -->|"student/admin"| S1 --> S2
+    M1 --> M2 --> M3 --> M4 --> M4P --> M5
+    S2 -->|"admin + active + class匹配"| C1 --> C2
+    S2 -->|"admin + active + class匹配"| H1
+    A3 -->|"admin"| I1
+    A3 -->|"admin"| B1
+    </div>
+  </div>
+
+  <!-- 图5：添加课程全流程 -->
+  <div class="diagram-card">
+    <h2>图 5 · 添加课程与多条上课安排（全链路时序）</h2>
+    <div class="desc">课程基本信息和全部上课安排在一个事务中保存；任一安排冲突均整体失败</div>
+    <div class="mermaid">
+sequenceDiagram
+    participant U as 班级管理员
+    participant F as 前端 index.html
+    participant A as Flask app.py
+    participant D as SQLite
+
+    U->>F: 填写课程基本信息并添加一条或多条安排
+    F->>F: 前端预校验必填项、范围和起止顺序
+    F->>A: POST /api/courses<br/>{course_code,...,sessions:[...]}
+    A->>A: 校验Session、CSRF、role、status和class_id
+    A->>A: 从服务端取得active semester_id
+    A->>A: 校验课程编号唯一、教师、日期和每条安排
+    A->>D: 查询本班当前学期course_sessions冲突
+    
+    alt 命中冲突
+        D-->>A: 返回冲突课程和安排
+        A-->>F: 409 {code:"COURSE_TIME_CONFLICT",details:{...}}
+        F-->>U: toast 错误，表单保持打开
+    else 无冲突
+        A->>D: BEGIN
+        A->>D: INSERT courses<br/>class_id和semester_id来自服务端
+        loop 每条上课安排
+            A->>D: INSERT course_sessions
+        end
+        A->>D: COMMIT并回读课程完整对象
+        D-->>A: 课程+全部安排
+        A-->>F: 201 {course:{...,sessions:[...]}}
+        F->>A: GET /api/schedule?week=N
+        F->>F: 重新渲染课表与教师联想
+        F-->>U: toast「课程已添加」
+    end
+    </div>
+  </div>
+
+  <!-- 图6：课程与作业双 CSV 导入流程 -->
+  <div class="diagram-card">
+    <h2>图 6 · 核心数据流：课程与作业双 CSV 导入</h2>
+    <div class="desc">两份文件一次选择、统一校验、同一事务覆盖，任一步失败整体回滚</div>
+    <div class="mermaid">
+sequenceDiagram
+    participant U as 班级管理员
+    participant F as 前端 index.html
+    participant A as Flask app.py
+    participant D as SQLite
+
+    U->>F: 一次选择课程.csv和作业.csv
+    F->>F: 校验两个文件、扩展名和2MB大小限制
+    F-->>U: confirm「将覆盖当前班级当前学期全部课程与作业」
+    
+    U->>F: 确认
+    F->>A: POST /api/import/course-homework<br/>multipart/form-data + CSRF
+    A->>A: 校验Session、admin、active和class_id
+    A->>A: 服务端解析两份CSV<br/>校验表头、编码、行数、字段和课程引用
+    A->>A: 同课程编号聚合课程<br/>多行转为多条course_sessions
+    A->>A: 校验日期、范围、重复项和文件内冲突
+    A->>D: BEGIN IMMEDIATE
+    A->>D: DELETE 当前class_id + semester_id的courses<br/>外键级联旧sessions和homework
+    
+    loop 写入课程、安排与作业
+        A->>D: INSERT courses
+        A->>D: INSERT course_sessions（每个CSV课程行）
+        A->>D: INSERT homework（course_code映射course_id）
+    end
+
+    alt 全部成功
+        A->>D: INSERT audit_logs（只记录数量和结果）
+        A->>D: COMMIT
+        A-->>F: 200 {courses_imported, sessions_imported, homework_imported}
+        F->>A: GET /api/schedule?week=N
+        F-->>U: toast「课程与作业已一起导入」
+    else 任一校验或写入失败
+        A->>D: ROLLBACK
+        A-->>F: 400/409/500 + 统一错误体和行号详情
+        F-->>U: toast失败；原课程与作业保持不变
+    end
+    </div>
+  </div>
+
+  <!-- 图7：冲突检测逻辑 -->
+  <div class="diagram-card">
+    <h2>图 7 · 服务端冲突检测逻辑</h2>
+    <div class="desc">仅在同班级、同学期内比较 course_sessions；同星期、节次重叠、周次重叠同时成立即冲突</div>
+    <div class="mermaid">
+flowchart TD
+    START(["开始：添加/编辑上课安排"]) --> AUTH["从Session取得user.class_id<br/>取得当前active semester_id<br/>校验admin + active"]
+    AUTH --> PARSE["校验安排字段<br/>day_of_week在1至7<br/>节次在1至12且start≤end<br/>周次在学期范围且week_start≤week_end"]
+    
+    PARSE --> CHECK{"查询course_sessions并JOIN courses<br/>courses.class_id = Session班级<br/>courses.semester_id = active学期<br/>day_of_week相同<br/>start_section ≤ 新end且end_section ≥ 新start<br/>week_start ≤ 新week_end且week_end ≥ 新week_start<br/>编辑时排除当前session_id"}
+    
+    CHECK --> FOUND{命中冲突?}
+    FOUND -->|"是"| ERROR["返回409<br/>code=COURSE_TIME_CONFLICT<br/>details含冲突课程与安排"]
+    FOUND -->|"否"| PASS
+    
+    PASS --> SAVE["事务INSERT/UPDATE course_sessions"]
+    SAVE --> OK["返回201/200<br/>更新后的课程和全部安排"]
+    
+    ERROR --> FRONTEND["前端定位到冲突安排<br/>显示课程名、星期、节次和周次<br/>表单保持打开"]
+    
+    style START fill:#4a90d9,color:#fff
+    style OK fill:#5cb85c,color:#fff
+    style ERROR fill:#e74c3c,color:#fff
+    style SAVE fill:#357abd,color:#fff
+    </div>
+  </div>
+
+  <!-- 图8：核心交互流转 -->
+  <div class="diagram-card">
+    <h2>图 8 · 核心交互流转图</h2>
+    <div class="desc">先初始化学期、班级、学生名单和管理员，再开放学生激活；三角色按服务端权限进入不同业务范围</div>
+    <div class="mermaid">
+flowchart TD
+    DEPLOY[部署人员通过受控脚本创建system_admin] --> SA[系统管理员登录独立后台]
+    SA --> INIT[创建active学期和班级]
+    INIT --> ROSTER[导入学生名单<br/>users=student+pending+无密码]
+    TEACHER[辅导员或班主任确认管理员人选] --> ASSIGN[系统管理员任命班级管理员]
+    ROSTER --> ASSIGN
+    ASSIGN --> INVITE[服务端生成随机邀请码<br/>数据库只保存hash<br/>明文展示一次]
+
+    A[学生打开课表应用] --> B{账号是否已激活?}
+    B -- 否 --> C[填写姓名/学号/邀请码/密码]
+    C --> D{匹配pending记录、班级和邀请码hash?}
+    D -- 否 --> C
+    D -- 是 --> E[事务写入password_hash<br/>status改为active]
+    B -- 是 --> F[输入账号密码登录]
+    E --> F
+    F --> G{Session + role + status校验}
+    G -- 失败 --> F
+    G -- system_admin --> SA
+    G -- student或admin --> H[按Session.class_id和active semester加载课表]
+    H --> I[周/日视图、搜索、提醒、详情、PDF]
+    I --> J{role=admin且班级active?}
+    J -- 否 --> K[学生只读<br/>所有写API返回403]
+    J -- 是 --> L[维护课程、安排和作业]
+    J -- 是 --> M[双CSV事务导入]
+    J -- 是 --> RESET[重新生成邀请码<br/>旧码立即失效]
+    L --> Q[刷新本班当前学期数据]
+    M --> Q
+    RESET --> Q
+
+    TEACHER -. 换届确认 .-> HANDOVER[系统管理员事务停用旧管理员并启用新管理员]
+    HANDOVER --> KEEP[班级、学生、课程、作业和邀请码保持不变]
+
+    style DEPLOY fill:#4a90d9,color:#fff
+    style Q fill:#5cb85c,color:#fff
+    style D fill:#f0ad4e,color:#fff
+    </div>
+  </div>
+
+</div>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'default',
+    securityLevel: 'loose',
+    flowchart: { curve: 'basis', htmlLabels: true },
+    er: { layoutDirection: 'LR' },
+    sequence: { height: 50 }
+  });
+</script>
+
+</body>
+</html>

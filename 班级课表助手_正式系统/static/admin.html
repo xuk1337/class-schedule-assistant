@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>系统管理后台 · 班级课表助手</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/static/css/base.css">
+  <link rel="stylesheet" href="/static/css/admin.css">
+</head>
+<body>
+
+<!-- ==================== 系统管理员登录 ==================== -->
+<div class="login-overlay" id="admin-login">
+  <div class="login-grid-bg" aria-hidden="true"></div>
+  <div class="login-layout">
+    <div class="login-brand">
+      <div class="login-brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.8 4.5 5.6v5.6c0 4.6 3.2 8.4 7.5 10 4.3-1.6 7.5-5.4 7.5-10V5.6L12 2.8Z"/></svg>
+      </div>
+      <div class="login-brand-title">系统管理后台</div>
+      <div class="login-brand-subtitle">班级课表助手 · 仅限系统管理员使用</div>
+    </div>
+    <div class="login-card">
+      <div class="login-form-group">
+        <label class="login-label" for="admin-login-id">管理员账号</label>
+        <input class="input" type="text" id="admin-login-id" placeholder="请输入系统管理员账号" autocomplete="username">
+      </div>
+      <div class="login-form-group">
+        <label class="login-label" for="admin-login-pwd">密码</label>
+        <div class="login-input-wrapper">
+          <input class="input" type="password" id="admin-login-pwd" placeholder="请输入密码" autocomplete="current-password">
+          <button class="login-toggle-pwd" id="admin-toggle-pwd" type="button" aria-label="显示密码"></button>
+        </div>
+      </div>
+      <div class="login-error" id="admin-login-error" role="alert" aria-live="polite"></div>
+      <button class="btn btn-solid login-btn" id="admin-login-btn" type="button">登 录</button>
+    </div>
+    <div class="login-footer-text"><a href="/">返回课表应用</a></div>
+  </div>
+</div>
+
+<!-- ==================== 无权限提示 ==================== -->
+<div class="login-overlay hidden" id="admin-forbidden">
+  <div class="login-layout">
+    <div class="login-card forbidden-card">
+      <div class="forbidden-icon" aria-hidden="true"></div>
+      <div class="auth-title">无权限访问</div>
+      <p class="forbidden-text">当前账号不是系统管理员，无法进入系统管理后台。</p>
+      <div class="forbidden-actions">
+        <button class="btn btn-solid" id="forbidden-back" type="button">返回课表应用</button>
+        <button class="btn btn-outline" id="forbidden-logout" type="button">退出登录</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 后台主体 ==================== -->
+<div id="admin-app" class="hidden">
+  <div class="drawer-backdrop" id="drawer-backdrop"></div>
+  <aside class="admin-sidebar" id="admin-sidebar" aria-label="后台导航">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/><rect x="6.6" y="12.4" width="4.2" height="3.4" rx="0.8" fill="currentColor" stroke="none"/><rect x="13.2" y="12.4" width="4.2" height="3.4" rx="0.8" fill="currentColor" stroke="none" opacity=".45"/></svg>
+      </div>
+      <div class="sidebar-brand-meta">
+        <div class="sidebar-brand-name">班级课表助手</div>
+        <div class="sidebar-brand-sub">系统管理后台</div>
+      </div>
+    </div>
+    <nav class="admin-nav" id="admin-nav">
+      <button class="admin-nav-btn active" data-section="semesters" data-icon="calendar" type="button">学期管理</button>
+      <button class="admin-nav-btn" data-section="classes" data-icon="grid" type="button">班级管理</button>
+      <button class="admin-nav-btn" data-section="students" data-icon="users" type="button">学生名单</button>
+      <button class="admin-nav-btn" data-section="admins" data-icon="shield" type="button">管理员管理</button>
+      <button class="admin-nav-btn" data-section="audit" data-icon="history" type="button">审计日志</button>
+    </nav>
+    <div class="sidebar-user">
+      <div class="sidebar-user-avatar" id="admin-avatar">系</div>
+      <div class="sidebar-user-meta">
+        <div class="sidebar-user-name" id="admin-name-display"></div>
+        <div class="sidebar-user-role">系统管理员</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" id="admin-logout" type="button">退出</button>
+    </div>
+  </aside>
+
+  <div class="admin-main">
+    <header class="header">
+      <button class="btn btn-ghost drawer-toggle" id="drawer-toggle" type="button" aria-label="打开导航" aria-expanded="false"></button>
+      <div class="header-title" id="header-title">学期管理</div>
+      <div class="header-actions">
+        <a class="header-link" href="/">返回课表应用</a>
+      </div>
+    </header>
+    <main class="admin-content" id="admin-content"></main>
+  </div>
+</div>
+
+<!-- ==================== 弹窗：新建学期 ==================== -->
+<div class="modal-root" id="modal-semester">
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-dialog" role="dialog" aria-modal="true" aria-label="新建学期">
+    <div class="modal-header">
+      <span class="modal-title">新建学期</span>
+      <button class="modal-close" data-close type="button" aria-label="关闭"></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label class="form-label" for="sem-name">学期名称</label>
+        <input class="input" type="text" id="sem-name" placeholder="如 2026 年秋季学期" maxlength="64">
+      </div>
+      <div class="form-row">
+        <label class="form-label" for="sem-start">第一周周一</label>
+        <input class="input" type="date" id="sem-start">
+      </div>
+      <div class="form-row">
+        <label class="form-label" for="sem-weeks">周数</label>
+        <input class="input" type="number" id="sem-weeks" min="1" max="30" placeholder="1-30">
+      </div>
+      <div class="form-error" id="sem-error" role="alert"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" data-close type="button">取消</button>
+      <button class="btn btn-solid" id="btn-sem-save" type="button">创建</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 弹窗：新建班级 ==================== -->
+<div class="modal-root" id="modal-class">
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-dialog" role="dialog" aria-modal="true" aria-label="新建班级">
+    <div class="modal-header">
+      <span class="modal-title">新建班级</span>
+      <button class="modal-close" data-close type="button" aria-label="关闭"></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label class="form-label" for="cls-code">班级代码</label>
+        <input class="input" type="text" id="cls-code" placeholder="如 RJ2301" maxlength="32">
+      </div>
+      <div class="form-row">
+        <label class="form-label" for="cls-name">班级名称</label>
+        <input class="input" type="text" id="cls-name" placeholder="如 软件技术 2301 班" maxlength="64">
+      </div>
+      <div class="form-row">
+        <label class="form-label" for="cls-semester">所属学期</label>
+        <select class="input" id="cls-semester"></select>
+      </div>
+      <div class="form-error" id="cls-error" role="alert"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" data-close type="button">取消</button>
+      <button class="btn btn-solid" id="btn-cls-save" type="button">创建并生成邀请码</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 弹窗：学生转班 ==================== -->
+<div class="modal-root" id="modal-transfer">
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-dialog" role="dialog" aria-modal="true" aria-label="学生转班">
+    <div class="modal-header">
+      <span class="modal-title">学生转班</span>
+      <button class="modal-close" data-close type="button" aria-label="关闭"></button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-hint" id="transfer-hint"></p>
+      <div class="form-row">
+        <label class="form-label" for="transfer-class">目标班级</label>
+        <select class="input" id="transfer-class"></select>
+      </div>
+      <div class="form-error" id="transfer-error" role="alert"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" data-close type="button">取消</button>
+      <button class="btn btn-solid" id="btn-transfer-save" type="button">确认转班</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 弹窗：任命 / 交接班级管理员 ==================== -->
+<div class="modal-root" id="modal-appoint">
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-dialog" role="dialog" aria-modal="true" aria-label="任命或交接班级管理员">
+    <div class="modal-header">
+      <span class="modal-title">任命 / 交接班级管理员</span>
+      <button class="modal-close" data-close type="button" aria-label="关闭"></button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-hint">
+        人选须由辅导员或班主任确认。若目标班级已有有效管理员，提交后将停用原管理员账号并完成交接，班级课程、作业与学生数据保持不变。
+      </p>
+      <div class="form-row">
+        <label class="form-label" for="ap-class">负责班级</label>
+        <select class="input" id="ap-class"></select>
+      </div>
+      <div class="form-row">
+        <label class="form-label" for="ap-name">姓名</label>
+        <input class="input" type="text" id="ap-name" placeholder="管理员姓名" maxlength="32">
+      </div>
+      <div class="form-row">
+        <label class="form-label" for="ap-login">登录账号</label>
+        <input class="input" type="text" id="ap-login" placeholder="全局唯一的登录账号" maxlength="32" autocomplete="off">
+      </div>
+      <div class="form-row">
+        <label class="form-label" for="ap-pwd">初始密码</label>
+        <input class="input" type="password" id="ap-pwd" placeholder="至少 8 位字符" maxlength="64" autocomplete="new-password">
+      </div>
+      <div class="form-error" id="ap-error" role="alert"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" data-close type="button">取消</button>
+      <button class="btn btn-solid" id="btn-ap-save" type="button">确认任命</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 弹窗：敏感信息一次性展示 ==================== -->
+<div class="modal-root" id="modal-secret">
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="secret-title">
+    <div class="modal-header">
+      <span class="modal-title" id="secret-title">操作成功</span>
+      <button class="modal-close" data-close type="button" aria-label="关闭"></button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-hint" id="secret-hint"></p>
+      <div class="secret-code" id="secret-text"></div>
+      <p class="secret-warning" id="secret-warning">该信息仅展示这一次，关闭后无法再次查看，请立即复制并线下交付。</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" data-close type="button">关闭</button>
+      <button class="btn btn-solid" id="btn-secret-copy" type="button">复制</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/icons.js"></script>
+<script src="/static/js/api.js"></script>
+<script src="/static/js/admin.js"></script>
+</body>
+</html>
