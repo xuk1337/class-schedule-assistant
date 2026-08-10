@@ -1,0 +1,24 @@
+# Render 一键部署蓝图（https://render.com → New → Blueprint → 选择本仓库）
+# 免费方案说明：15 分钟无访问会休眠，首次打开约 30 秒冷启动；
+# 磁盘为临时磁盘，每次重启/重新部署会重置数据库，启动时自动重新灌入演示数据。
+services:
+  - type: web
+    name: class-schedule-assistant
+    runtime: python
+    plan: free
+    rootDir: 班级课表助手_正式系统
+    buildCommand: pip install -r requirements.txt
+    # 单 worker + 多线程：SQLite 写并发有限，免费档内存也有限
+    startCommand: python scripts/init_deploy.py && gunicorn -w 1 --threads 4 -b 0.0.0.0:$PORT 'app:create_app()'
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.1
+      - key: SECRET_KEY
+        generateValue: true
+      - key: SESSION_COOKIE_SECURE
+        value: '1'
+      # 系统管理员初始密码：部署时在 Render 页面填写；留空则随机生成并打印到启动日志
+      - key: SYSADMIN_PASSWORD
+        sync: false
+      # 注意：不设置 APP_ENV=production——该标记会让演示数据初始化脚本拒绝执行；
+      # 实际安全项（独立 SECRET_KEY、Secure/HttpOnly Cookie、CSRF 校验）均已显式开启

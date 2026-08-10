@@ -143,3 +143,17 @@ MATH-01,习题集第 5 章第 1-20 题,2026-09-10
    `PRAGMA foreign_key_check;` 校验外键并核对关键记录数量。建议纳入定时任务并定期演练恢复。
 5. **安全基线**：生产页面、源码与日志中不得出现演示账号、固定密码或邀请码明文；
    会话 Cookie 已启用 HttpOnly + SameSite=Lax，所有 `/api/` 写请求强制 CSRF 头校验。
+
+## 在线演示部署（Render）
+
+仓库根目录的 `render.yaml` 是 Render Blueprint 配置：在
+[Render](https://render.com) 用 GitHub 登录 → New → Blueprint → 选择本仓库即可，
+部署时按提示设置 `SYSADMIN_PASSWORD`（系统管理员初始密码）。
+
+- 启动命令先执行 `scripts/init_deploy.py`：数据库为空时自动灌入演示数据
+  （幂等，非空跳过），系统管理员密码取 `SYSADMIN_PASSWORD`，未设置则随机生成并
+  仅在启动日志打印一次。
+- 免费方案限制：15 分钟无访问会休眠（首次打开约 30 秒冷启动）；磁盘为临时磁盘，
+  重启后演示数据重置。请勿在该标记下存放真实数据。
+- 该演示部署不设置 `APP_ENV=production`（否则初始化脚本按安全约定拒绝灌入演示数据）；
+  独立 `SECRET_KEY`、`SESSION_COOKIE_SECURE` 等安全项均已显式开启。
